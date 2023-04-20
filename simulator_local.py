@@ -142,10 +142,10 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     #maquina 1
     start_python_script_on_ec2(host='54.82.242.94', 
                             username='ubuntu',
-                            script_path='.~/Desktop/algoritmo-complexo-simulador-vibracao/simulator_ec2_1.py', 
+                            script_path='./Desktop/algoritmo-complexo-simulador-vibracao/simulator_ec2_1.py', 
                             local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/CH-06042023.pem')
 
-    plt.show()
+    # plt.show()
     
     
 
