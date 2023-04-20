@@ -7,6 +7,33 @@ import os
 import paramiko
 import pyodbc
 
+def start_python_script_on_ec2(host, username, script_path, local_key_path):
+    # Inicializa o cliente SSH
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    # Adiciona a chave privada do usuário para autenticação
+    key = paramiko.RSAKey.from_private_key_file(local_key_path)
+    
+    # Conecta-se ao servidor remoto
+    ssh.connect(hostname=host, username=username, pkey=key)
+
+    # Executa o comando para inicializar o script Python
+    stdin, stdout, stderr = ssh.exec_command(f'python3 {script_path}')
+
+    # Lê a saída do comando
+    output = stdout.read().decode()
+    errors = stderr.read().decode()
+
+    # Imprime a saída do comando
+    print(output)
+    print(errors)
+
+    # Fecha a conexão SSH
+    ssh.close()
+    
+    return print('Conexão realizada!')
+
 def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tempo, frequencia_amostragem):
     def dados_atuais():
         tempo_atual = time.time() - inicio
@@ -53,16 +80,16 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     dados_atuais()
 
     # Insere os dados no banco de dados na Azure
-    cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
-    cursor = cnxn.cursor()
-    for vibracao in vibracoes:
-       a = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-       query = f"INSERT INTO TabelaDeVibracoes (tempo, amplitude) VALUES ('{a}', {vibracao});"
-       print(query)
-       cursor.execute(query)
-       dados_atuais()
-    cnxn.commit()
-    dados_atuais()
+    # cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+    # cursor = cnxn.cursor()
+    # for vibracao in vibracoes:
+    #    a = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    #    query = f"INSERT INTO TabelaDeVibracoes_local (tempo, amplitude) VALUES ('{a}', {vibracao});"
+    #    print(query)
+    #    cursor.execute(query)
+    #    dados_atuais()
+    # cnxn.commit()
+    # dados_atuais()
 
 
     # Plotando os dados simulados de vibração
@@ -103,6 +130,20 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     ax.set_ylabel('Tempo de execução (s)')
     ax.set_title('Desempenho do algoritmo')
     dados_atuais()
+    
+    cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+    cursor = cnxn.cursor()
+    query = f"INSERT INTO TabelaDeTempoExecucao_local (tempo_execucao, memoria_utilizada) VALUES ({tempo_execucao:.2f},{memoria_utilizada});"
+    print(query)
+    cursor.execute(query)
+    cnxn.commit()
+    dados_atuais()
+    
+    #maquina 1
+    start_python_script_on_ec2(host='54.82.242.94', 
+                            username='ubuntu',
+                            script_path='.~/Desktop/algoritmo-complexo-simulador-vibracao/simulator_ec2_1.py', 
+                            local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/CH-06042023.pem')
 
     plt.show()
     
@@ -110,43 +151,6 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
 
     return intervalos_vibracoes_altas
 
-import paramiko
-
-def start_python_script_on_ec2(host, username, script_path, local_key_path):
-    # Inicializa o cliente SSH
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    # Adiciona a chave privada do usuário para autenticação
-    key = paramiko.RSAKey.from_private_key_file(local_key_path)
-    
-    # Conecta-se ao servidor remoto
-    ssh.connect(hostname=host, username=username, pkey=key)
-
-    # Executa o comando para inicializar o script Python
-    stdin, stdout, stderr = ssh.exec_command(f'python3 {script_path}')
-
-    # Lê a saída do comando
-    output = stdout.read().decode()
-    errors = stderr.read().decode()
-
-    # Imprime a saída do comando
-    print(output)
-    print(errors)
-
-    # Fecha a conexão SSH
-    ssh.close()
-
-
-
-
 simular_vibracoes_caminhao(valor_maximo=200, valor_minimo=0, variacao=20, duracao_tempo=60, frequencia_amostragem=10)
-
-#maquina 1
-
-# start_python_script_on_ec2(host='54.82.242.94', 
-#                            username='ubuntu',
-#                            script_path='./Desktop/GRUPO-5/Grupo_05/AA/algas_petterson_vibracao.py', 
-#                            local_key_path='C:/Users/Aluno/Documents/CHAVE/CH-06042023.pem')
 
 
