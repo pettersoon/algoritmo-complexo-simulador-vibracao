@@ -78,10 +78,7 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
 
     return intervalos_vibracoes_altas
 
-simular_vibracoes_caminhao(valor_maximo=200, 
-                           valor_minimo=0, 
-                           variacao=20, 
-                           duracao_tempo=60, 
-                           frequencia_amostragem=10)
+
+simular_vibracoes_caminhao(valor_maximo=200, valor_minimo=0, variacao=20, duracao_tempo=60, frequencia_amostragem=10)
 
 
