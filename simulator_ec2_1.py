@@ -65,8 +65,8 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     fim = time.time()
     tempo_execucao = fim - inicio
     memoria_utilizada = psutil.Process().memory_info().rss / 1024 / 1024
-    print(f'Tempo de execução: {tempo_execucao:.2f} segundos')
-    print(f'Memoria utilizada: {memoria_utilizada} MB')
+    print('Tempo de execução: {:.2f} segundos'.format(tempo_execucao))
+    print('Memoria utilizada: {} MB'.format(memoria_utilizada))
     
     cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     cursor = cnxn.cursor()
