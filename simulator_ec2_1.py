@@ -55,7 +55,7 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     cursor = cnxn.cursor()
     for vibracao in vibracoes:
        a = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-       query = f'INSERT INTO TabelaDeVibracoes_ec2_1 (tempo, amplitude) VALUES ('{a}', '{vibracao}');'
+       query = f"INSERT INTO TabelaDeVibracoes_ec2_1 (tempo, amplitude) VALUES ('{a}', '{vibracao}');"
        print(query)
        cursor.execute(query)
        dados_atuais()
