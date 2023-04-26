@@ -6,6 +6,7 @@ import time
 import os
 import paramiko
 import pyodbc
+import pandas as pd
 
 def start_python_script_on_ec2(host, username, script_path, local_key_path):
     # Inicializa o cliente SSH
@@ -33,6 +34,21 @@ def start_python_script_on_ec2(host, username, script_path, local_key_path):
     ssh.close()
     
     return print('Conexão realizada!')
+
+def pega_intervalos_vibracao_altas(frequencia_amostragem,num_amostras,vibracoes,valor_maximo):
+    intervalos_vibracoes_altas = []
+    inicio_intervalo = None
+    for i in range(num_amostras):
+        if vibracoes[i] > valor_maximo:
+            if inicio_intervalo is None:
+                inicio_intervalo = i
+        else:
+            if inicio_intervalo is not None:
+                intervalos_vibracoes_altas.append((inicio_intervalo / frequencia_amostragem, i / frequencia_amostragem))
+                inicio_intervalo = None
+    if inicio_intervalo is not None:
+        intervalos_vibracoes_altas.append((inicio_intervalo / frequencia_amostragem, num_amostras / frequencia_amostragem))
+    return intervalos_vibracoes_altas
 
 def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tempo, frequencia_amostragem):
     def dados_atuais():
@@ -65,24 +81,13 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     dados_atuais()
 
     # Gerando os intervalos de tempo em que ocorrem as vibrações altas
-    intervalos_vibracoes_altas = []
-    inicio_intervalo = None
-    for i in range(num_amostras):
-        if vibracoes[i] > valor_maximo:
-            if inicio_intervalo is None:
-                inicio_intervalo = i
-        else:
-            if inicio_intervalo is not None:
-                intervalos_vibracoes_altas.append((inicio_intervalo / frequencia_amostragem, i / frequencia_amostragem))
-                inicio_intervalo = None
-    if inicio_intervalo is not None:
-        intervalos_vibracoes_altas.append((inicio_intervalo / frequencia_amostragem, num_amostras / frequencia_amostragem))
-    dados_atuais()
+    intervalos_vibracoes_altas = pega_intervalos_vibracao_altas(frequencia_amostragem, num_amostras, vibracoes, valor_maximo)
 
     # Insere os dados no banco de dados na Azure
     # cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     # cursor = cnxn.cursor()
     # for vibracao in vibracoes:
+    ##    time.sleep(5000)
     #    a = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     #    query = f"INSERT INTO TabelaDeVibracoes_local (tempo, amplitude) VALUES ('{a}', {vibracao});"
     #    print(query)
@@ -96,7 +101,7 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(eixo_tempo, vibracoes)
     dados_atuais()
-
+    print(intervalos_vibracoes_altas)
     for intervalo in intervalos_vibracoes_altas:
         ax.axvspan(intervalo[0], intervalo[1], alpha=0.5, color='red')
 
@@ -162,21 +167,68 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     ax.bar(labels, tempos, label='Tempo')
     ax.bar(labels, memorias, bottom=tempos, label='Memória')
     ax.legend()
-    plt.show()
     
-    # plt.show()
+    #GRAFICO DE SIMULAÇÃO EC2-VIRGINIA
+    cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+    # query para buscar as medições de vibração
+    query = "SELECT TOP 600 * FROM TabelaDeVibracoes_ec2_1 order by id desc;"
+    # leitura dos dados usando pandas
+    df = pd.read_sql(query, cnxn)
+
+    # fechar a conexão com o banco de dados
+    cnxn.close()
+    eixo_tempo_ec2_1 = df['tempo']
+    vibracoes_ec2_1 = df['amplitude']
+    
+    intervalos_vibracoes_altas_ec2_1 = pega_intervalos_vibracao_altas(frequencia_amostragem, num_amostras, vibracoes_ec2_1, valor_maximo)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(eixo_tempo, vibracoes_ec2_1)
+    for intervalo in intervalos_vibracoes_altas_ec2_1:
+        ax.axvspan(intervalo[0], intervalo[1], alpha=0.5, color='red')
+    ax.axhline(y=valor_maximo, linestyle='--', color='red', label='Pode causar dano')
+    ax.axhline(y=150, linestyle='--', color='orange', label='Limite de vibração')
+    ax.set_xlabel('Tempo (s)')
+    ax.set_ylabel('Amplitude (mm/s)')
+    ax.set_title('Vibrações do caminhão EC2 - VIRGINIA')
+    ax.legend()
+    
+    #GRAFICO DE SIMULAÇÃO EC2-BRASIL
+    cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+    # query para buscar as medições de vibração
+    query = "SELECT TOP 600 * FROM TabelaDeVibracoes_ec2_2 order by id desc;"
+    # leitura dos dados usando pandas
+    df = pd.read_sql(query, cnxn)
+
+    # fechar a conexão com o banco de dados
+    cnxn.close()
+    eixo_tempo_ec2_2 = df['tempo']
+    vibracoes_ec2_2 = df['amplitude']
+    
+    intervalos_vibracoes_altas_ec2_2 = pega_intervalos_vibracao_altas(frequencia_amostragem, num_amostras, vibracoes_ec2_2, valor_maximo)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(eixo_tempo, vibracoes_ec2_2)
+    for intervalo in intervalos_vibracoes_altas_ec2_2:
+        ax.axvspan(intervalo[0], intervalo[1], alpha=0.5, color='red')
+    ax.axhline(y=valor_maximo, linestyle='--', color='red', label='Pode causar dano')
+    ax.axhline(y=150, linestyle='--', color='orange', label='Limite de vibração')
+    ax.set_xlabel('Tempo (s)')
+    ax.set_ylabel('Amplitude (mm/s)')
+    ax.set_title('Vibrações do caminhão EC2 - BRASIL')
+    ax.legend()
+    
+    plt.show()
     return intervalos_vibracoes_altas
 
 #MAQUINA - 1 - VIRGINIA
-start_python_script_on_ec2(host='3.213.96.48', 
-                            username='ubuntu',
-                            script_path='./Desktop/algoritmo-complexo-simulador-vibracao/simulator_ec2_1.py', 
-                            local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/CH-06042023.pem')
-# MAQUINA - 2 - BRASIL
-start_python_script_on_ec2(host='4.228.202.56', 
-                            username='azureuser',
-                            script_path='./algoritmo-complexo-simulador-vibracao/simulator_ec2_2.py', 
-                            local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/ec2-_key.pem')
+# start_python_script_on_ec2(host='3.213.96.48', 
+#                             username='ubuntu',
+#                             script_path='./Desktop/algoritmo-complexo-simulador-vibracao/simulator_ec2_1.py', 
+#                             local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/CH-06042023.pem')
+# # MAQUINA - 2 - BRASIL
+# start_python_script_on_ec2(host='4.228.202.56', 
+#                             username='azureuser',
+#                             script_path='./algoritmo-complexo-simulador-vibracao/simulator_ec2_2.py', 
+#                             local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/ec2-_key.pem')
 # #MAQUINA -  3 - LOCAL
 simular_vibracoes_caminhao(valor_maximo=200, valor_minimo=0, variacao=20, duracao_tempo=60, frequencia_amostragem=10)
 

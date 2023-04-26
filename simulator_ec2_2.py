@@ -54,6 +54,7 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     cursor = cnxn.cursor()
     for vibracao in vibracoes:
+##     time.sleep(5000)
        a = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
        query = f"INSERT INTO TabelaDeVibracoes_ec2_2 (tempo, amplitude) VALUES ('{a}', {vibracao});"
        print(query)
