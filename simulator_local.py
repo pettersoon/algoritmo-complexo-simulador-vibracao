@@ -131,26 +131,53 @@ def simular_vibracoes_caminhao(valor_maximo, valor_minimo, variacao, duracao_tem
     ax.set_title('Desempenho do algoritmo')
     dados_atuais()
     
+    # cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
+    # cursor = cnxn.cursor()
+    # query = f"INSERT INTO TabelaDeTempoExecucao_local (tempo_execucao, memoria_utilizada) VALUES ({tempo_execucao:.2f},{memoria_utilizada});"
+    # print(query)
+    # cursor.execute(query)
+    # cnxn.commit()
+    # dados_atuais()
+
+    #GRÁFICO COMPARAÇÃO
     cnxn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=tcp:simulador.database.windows.net,1433;Database=vibrations;Uid=petterson.viturino@bandtec.com.br@simulador;Pwd={#Gf46492782879};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;')
     cursor = cnxn.cursor()
-    query = f"INSERT INTO TabelaDeTempoExecucao_local (tempo_execucao, memoria_utilizada) VALUES ({tempo_execucao:.2f},{memoria_utilizada});"
-    print(query)
-    cursor.execute(query)
-    cnxn.commit()
+    # Consultar valores
+    query_local = f"SELECT TOP 1 * FROM TabelaDeTempoExecucao_local ORDER BY id DESC;"
+    query_ec2_1 = f"SELECT TOP 1 * FROM TabelaDeTempoExecucao_ec2_1 ORDER BY id DESC;"
+    query_ec2_2 = f"SELECT TOP 1 * FROM TabelaDeTempoExecucao_ec2_2 ORDER BY id DESC;"
+    cursor.execute(query_local)
+    valor_local = cursor.fetchone()
+    cursor.execute(query_ec2_1)
+    valor_ec2_1 = cursor.fetchone()
+    cursor.execute(query_ec2_2)
+    valor_ec2_2 = cursor.fetchone()
     dados_atuais()
+
+    tempos = [valor_local[0], valor_ec2_1[0], valor_ec2_2[0]]
+    memorias = [valor_local[1], valor_ec2_1[1], valor_ec2_2[1]]
+    labels = ['Local', 'Virginia', 'Brasil']
+
+    fig, ax = plt.subplots()
+    ax.bar(labels, tempos, label='Tempo')
+    ax.bar(labels, memorias, bottom=tempos, label='Memória')
+    ax.legend()
+    plt.show()
     
-    #maquina 1
-    start_python_script_on_ec2(host='54.82.242.94', 
+    # plt.show()
+    return intervalos_vibracoes_altas
+
+#MAQUINA - 1 - VIRGINIA
+start_python_script_on_ec2(host='3.213.96.48', 
                             username='ubuntu',
                             script_path='./Desktop/algoritmo-complexo-simulador-vibracao/simulator_ec2_1.py', 
                             local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/CH-06042023.pem')
-
-    # plt.show()
-    
-    
-
-    return intervalos_vibracoes_altas
-
+# MAQUINA - 2 - BRASIL
+start_python_script_on_ec2(host='4.228.202.56', 
+                            username='azureuser',
+                            script_path='./algoritmo-complexo-simulador-vibracao/simulator_ec2_2.py', 
+                            local_key_path='C:/Users/petiv/OneDrive/Documentos/AA/ec2-_key.pem')
+# #MAQUINA -  3 - LOCAL
 simular_vibracoes_caminhao(valor_maximo=200, valor_minimo=0, variacao=20, duracao_tempo=60, frequencia_amostragem=10)
 
 
